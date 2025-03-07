@@ -1,4 +1,4 @@
-// src/App.tsx
+// frontend/src/App.tsx
 
 import React from "react";
 import { Routes, Route } from "react-router-dom";
@@ -8,7 +8,10 @@ import Login from "./components/Login";
 import PersonalArea from "./components/PersonalArea";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import AdminLogin from "./components/AdminLogin";
+import AdminDashboard from "./components/AdminDashboard";
 
+// Main App component that defines the overall layout and routes
 const App: React.FC = () => {
   return (
     <div
@@ -21,6 +24,8 @@ const App: React.FC = () => {
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route path="/personal" element={<PersonalArea />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
         </Routes>
       </main>
       <Footer />

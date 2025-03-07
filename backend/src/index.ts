@@ -1,26 +1,29 @@
-// Import necessary libraries and modules
-import express from 'express';           // Import Express framework
-import cors from 'cors';                 // Import CORS middleware
-import dotenv from 'dotenv';             // Import dotenv to load environment variables
-import authRoutes from './routes/auth';  // Import authentication routes
+// backend/src/index.ts
 
-dotenv.config();  // Load environment variables from .env file
+import express from "express";       // Express framework for server creation
+import cors from "cors";             // CORS middleware to allow cross-origin requests
+import dotenv from "dotenv";         // dotenv to load environment variables
+import authRoutes from "./routes/auth";  // Import user routes (registration, login, etc.)
+import adminRoutes from "./routes/admin"; // Import admin routes
 
-const app = express();                   // Create an Express application
-const port = process.env.PORT || 5000;     // Set port from environment or default to 5000
+dotenv.config(); // Load environment variables from .env file
 
-app.use(cors());                         // Enable Cross-Origin Resource Sharing
-app.use(express.json());                 // Parse JSON request bodies
+const app = express();                 // Create the Express app
+const port = process.env.PORT || 5000;   // Set the port from environment variables or default to 5000
 
-// Define a basic route for the root path
-app.get('/', (req, res) => {
-  res.send('Welcome to the Ehud Fitness Program API!');
+app.use(cors());                       // Enable CORS for all routes
+app.use(express.json());               // Enable JSON body parsing
+
+// Basic route for testing server
+app.get("/", (req, res) => {
+  res.send("Welcome to the Ehud Fitness Program API!");
 });
 
-// Mount authentication routes under '/api/auth'
-app.use('/api/auth', authRoutes);
+// Mount user routes under /api/auth
+app.use("/api/auth", authRoutes);
+// Mount admin routes under /api/admin
+app.use("/api/admin", adminRoutes);
 
-// Start the server and listen on the specified port
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });

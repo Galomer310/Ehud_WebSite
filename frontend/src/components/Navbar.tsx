@@ -1,18 +1,18 @@
-// src/components/Navbar.tsx
+// frontend/src/components/Navbar.tsx
 
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // Import Link and useNavigate for navigation
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../store/store";
 import { logout } from "../store/authSlice";
 
-// Navbar component with logo placeholder and navigation links.
+// Navbar component with logo placeholder and navigation links, including an "Admin" link.
 const Navbar: React.FC = () => {
   const token = useSelector((state: RootState) => state.auth.token);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // Handle logout: dispatch logout action and navigate to Home.
+  // Handler to log out the user
   const handleLogout = () => {
     dispatch(logout());
     navigate("/");
@@ -37,7 +37,12 @@ const Navbar: React.FC = () => {
         />
         <Link
           to="/"
-          style={{ fontWeight: "bold", fontSize: "1.2rem", color: "#333" }}
+          style={{
+            fontWeight: "bold",
+            fontSize: "1.2rem",
+            color: "#333",
+            textDecoration: "none",
+          }}
         >
           Ehud Fitness
         </Link>
@@ -53,6 +58,10 @@ const Navbar: React.FC = () => {
       >
         <li>
           <Link to="/">Home</Link>
+        </li>
+        {/* Add a dedicated "Admin" link */}
+        <li>
+          <Link to="/admin/login">Admin</Link>
         </li>
         {token ? (
           <>
