@@ -1,0 +1,33 @@
+# Root-level Node modules (if you install any dependencies here)
+node_modules/
+
+# Logs and temporary files
+logs/
+*.log
+tmp/
+temp/
+
+# Build output directories (if you have any build outputs in the root)
+dist/
+build/
+
+# Environment variable files (keep sensitive data out of git)
+.env
+.env.local
+.env.*.local
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE/editor folders and settings
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Other miscellaneous files
+*.bak
+*.swp
