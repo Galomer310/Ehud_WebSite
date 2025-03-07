@@ -1,36 +1,40 @@
 // src/components/Login.tsx
 
-import React, { useState } from "react"; // Import React and useState for managing local state
-import axios from "axios"; // Import Axios for HTTP requests
-import { useDispatch } from "react-redux"; // Import Redux dispatch hook
-import { login } from "../store/authSlice"; // Import the login action from the auth slice
-import { useNavigate } from "react-router-dom"; // Import useNavigate to programmatically navigate
+import React, { useState } from "react";
+import axios from "axios";
+import { useDispatch } from "react-redux";
+import { login } from "../store/authSlice";
+import { useNavigate } from "react-router-dom";
 
-// Define the Login component
 const Login: React.FC = () => {
-  // Local state for email and password
+  // Local state for login credentials
   const [credentials, setCredentials] = useState({ email: "", password: "" });
-  const dispatch = useDispatch(); // Get the Redux dispatch function
-  const navigate = useNavigate(); // Get the navigate function for routing
+  const dispatch = useDispatch(); // Redux dispatch hook
+  const navigate = useNavigate(); // Navigation hook
 
-  // Update the credentials state when form fields change
+  // Update credentials state on input change
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCredentials({ ...credentials, [e.target.name]: e.target.value });
   };
 
-  // Handle form submission for login
+  // Handle login form submission
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); // Prevent the default form submission
+    e.preventDefault();
     try {
-      // Send POST request to login endpoint with credentials
+      // Send login request to backend
       const response = await axios.post(
         "http://localhost:5000/api/auth/login",
         credentials
       );
-      dispatch(login(response.data)); // Dispatch login action to update Redux state
-      navigate("/personal"); // Navigate to Personal Area after successful login
-    } catch (error) {
-      console.error("Login error:", error); // Log errors if login fails
+      console.log("Login successful:", response.data);
+      // Dispatch login action to update Redux state
+      dispatch(login(response.data));
+      // Navigate to personal area after successful login
+      navigate("/personal");
+    } catch (error: any) {
+      console.error("Login error:", error);
+      // Alert the user with the error message from the backend
+      alert(error.response.data.error);
     }
   };
 

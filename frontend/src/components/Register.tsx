@@ -1,8 +1,11 @@
+// src/components/Register.tsx
+
 import React, { useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom"; // To navigate programmatically
 
 const Register: React.FC = () => {
-  // Define state for form data using the useState hook
+  // Local state for registration form data
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -14,8 +17,9 @@ const Register: React.FC = () => {
     sex: "",
     medical_conditions: "",
   });
+  const navigate = useNavigate(); // Hook for navigating
 
-  // Handle form field changes by updating the corresponding state value
+  // Update form data state on change
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -24,18 +28,23 @@ const Register: React.FC = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Handle form submission and send registration data to the backend API
+  // Handle form submission for registration
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); // Prevent the default form submission behavior
+    e.preventDefault();
     try {
-      // Post the registration data to the backend endpoint
+      // Send registration request to backend
       const response = await axios.post(
         "http://localhost:5000/api/auth/register",
         formData
       );
-      console.log("Registered:", response.data); // Log the successful registration response
-    } catch (error) {
-      console.error("Registration error:", error); // Log any errors during registration
+      console.log("Registration successful:", response.data);
+      alert(response.data.message);
+      // Optionally, navigate to the login page after successful registration
+      navigate("/login");
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      // Alert the user with the error message from the backend
+      alert(error.response.data.error);
     }
   };
 
