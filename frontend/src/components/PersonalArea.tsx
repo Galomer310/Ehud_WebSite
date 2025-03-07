@@ -4,55 +4,46 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
-import SubscriptionMenu from "./SubscriptionMenu"; // Import the subscription menu component
+import SubscriptionMenu from "./SubscriptionMenu"; // Import SubscriptionMenu component
 
+// PersonalArea displays user details and, if available, the chosen subscription plan.
+// Otherwise, it prompts the user to choose a plan.
 const PersonalArea: React.FC = () => {
-  // Local state to hold fetched user data from the backend
   const [userData, setUserData] = useState<any>(null);
-  // Retrieve the JWT token from Redux state
   const token = useSelector((state: RootState) => state.auth.token);
 
-  // When the component mounts (or token changes), fetch user data from the protected endpoint
+  // Fetch user data (including subscription details) on mount or when token changes.
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // Make a GET request to fetch user data, including subscription details
         const response = await axios.get(
           "http://localhost:5000/api/auth/personal",
           {
-            headers: {
-              Authorization: `Bearer ${token}`, // Pass the token for authentication
-            },
+            headers: { Authorization: `Bearer ${token}` },
           }
         );
-        setUserData(response.data.user); // Set the fetched user data in state
+        setUserData(response.data.user);
       } catch (error) {
         console.error("Error fetching personal data:", error);
       }
     };
 
-    if (token) {
-      fetchUserData(); // Fetch data only if a token exists
-    }
+    if (token) fetchUserData();
   }, [token]);
 
-  // If no token exists, prompt the user to login
-  if (!token) {
-    return <div>Please login to view your personal area.</div>;
-  }
+  if (!token) return <div>Please login to view your personal area.</div>;
 
   return (
     <div style={{ padding: "1rem" }}>
       <h1>Personal Area</h1>
       {userData ? (
         <div>
-          {/* Display the user's email and any other details */}
           <p>
             <strong>Email:</strong> {userData.email}
           </p>
-          {/* Check for the subscription plan using the exact property names from the database */}
+          {/* Display other user details as needed */}
           {userData.subscription_plan ? (
-            // If a subscription plan exists, display its details
+            // If the subscription plan exists, display its details and a friendly message.
             <div
               style={{
                 backgroundColor: "#f0f0f0",
@@ -71,9 +62,20 @@ const PersonalArea: React.FC = () => {
               <p>
                 <strong>Price:</strong> {userData.subscription_price}
               </p>
+              <p
+                style={{
+                  marginTop: "1rem",
+                  fontStyle: "italic",
+                  color: "#555",
+                }}
+              >
+                Your choices have been sent to Ehud. Your Dashboard will be
+                updated soon with your new plan. In the meantime, make sure you
+                rest and drink water.
+              </p>
             </div>
           ) : (
-            // If no subscription plan exists, show the subscription menu
+            // If no subscription plan has been chosen, display the SubscriptionMenu.
             <div>
               <h2>You have not chosen a subscription plan yet.</h2>
               <SubscriptionMenu />

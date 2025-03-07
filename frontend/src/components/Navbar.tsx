@@ -1,27 +1,47 @@
 // src/components/Navbar.tsx
 
-import React from "react"; // Import React
-import { Link, useNavigate } from "react-router-dom"; // Import Link and useNavigate for routing
-import { useSelector, useDispatch } from "react-redux"; // Import Redux hooks
-import { RootState } from "../store/store"; // Import RootState type from Redux store
-import { logout } from "../store/authSlice"; // Import the logout action from the auth slice
+import React from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import { RootState } from "../store/store";
+import { logout } from "../store/authSlice";
 
-// Define the Navbar component
+// Navbar component with logo placeholder and navigation links.
 const Navbar: React.FC = () => {
-  // Get the token from Redux state to check if the user is logged in
   const token = useSelector((state: RootState) => state.auth.token);
-  const dispatch = useDispatch(); // Get the Redux dispatch function
-  const navigate = useNavigate(); // Get the navigate function for programmatic routing
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
-  // Handler to log out the user
+  // Handle logout: dispatch logout action and navigate to Home.
   const handleLogout = () => {
-    dispatch(logout()); // Dispatch the logout action to clear auth state
-    navigate("/"); // Redirect to Home page after logout
+    dispatch(logout());
+    navigate("/");
   };
 
   return (
-    // Navbar container with basic styling
-    <nav style={{ backgroundColor: "#f8f8f8", padding: "1rem" }}>
+    <nav
+      style={{
+        backgroundColor: "#f8f8f8",
+        padding: "1rem",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center" }}>
+        {/* Logo placeholder */}
+        <img
+          src="/logo-placeholder.png"
+          alt="Ehud Logo"
+          style={{ height: "40px", marginRight: "1rem" }}
+        />
+        <Link
+          to="/"
+          style={{ fontWeight: "bold", fontSize: "1.2rem", color: "#333" }}
+        >
+          Ehud Fitness
+        </Link>
+      </div>
       <ul
         style={{
           listStyleType: "none",
@@ -31,18 +51,15 @@ const Navbar: React.FC = () => {
           padding: 0,
         }}
       >
-        {/* Always show the Home link */}
         <li>
           <Link to="/">Home</Link>
         </li>
         {token ? (
-          // If a token exists (user is logged in), show Personal Area and Logout button
           <>
             <li>
               <Link to="/personal">Personal Area</Link>
             </li>
             <li>
-              {/* Logout button styled as a link */}
               <button
                 onClick={handleLogout}
                 style={{
@@ -58,7 +75,6 @@ const Navbar: React.FC = () => {
             </li>
           </>
         ) : (
-          // If no token exists (user is not logged in), show Register and Login links
           <>
             <li>
               <Link to="/register">Register</Link>
