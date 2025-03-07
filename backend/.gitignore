@@ -1,0 +1,20 @@
+# Node modules (all installed packages)
+node_modules/
+
+# Compiled JavaScript output (from TypeScript)
+dist/
+
+# Environment variable files (sensitive data should not be tracked)
+.env
+
+# Log files
+logs/
+*.log
+
+# OS-specific files (macOS, Windows, etc.)
+.DS_Store
+Thumbs.db
+
+# IDE and editor files (optional)
+.vscode/
+.idea/

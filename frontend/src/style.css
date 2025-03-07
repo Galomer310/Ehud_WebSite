@@ -1,0 +1,123 @@
+/* styles.css */
+
+/* Reset default browser styles */
+* {
+    box-sizing: border-box;   /* Ensure padding and border are included in element's total width and height */
+    margin: 0;                /* Remove default margin */
+    padding: 0;               /* Remove default padding */
+  }
+  
+  /* Global body styles */
+  body {
+    font-family: 'Arial', sans-serif;  /* Set a clean, sans-serif font */
+    line-height: 1.6;                  /* Improve readability with appropriate line height */
+    background: #f4f4f4;               /* Light gray background for a modern look */
+    color: #333;                       /* Dark gray text for good contrast */
+  }
+  
+  /* Container class for consistent content layout */
+  .container {
+    max-width: 1200px;       /* Limit the maximum width */
+    margin: 0 auto;          /* Center align the container */
+    padding: 1rem;           /* Add some padding around the content */
+  }
+  
+  /* Navbar styling */
+  nav {
+    background-color: #ffffff;                     /* White background for the navbar */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);        /* Light shadow for depth */
+    margin-bottom: 1rem;                             /* Space below the navbar */
+  }
+  nav ul {
+    list-style: none;                                /* Remove bullet points from list */
+    display: flex;                                   /* Display list items in a row */
+    justify-content: center;                         /* Center the navigation items */
+    padding: 0.5rem;                                 /* Padding for the list container */
+  }
+  nav ul li {
+    margin: 0 1rem;                                  /* Horizontal spacing between links */
+  }
+  nav ul li a {
+    text-decoration: none;                           /* Remove underline from links */
+    color: #333;                                     /* Dark text for links */
+    font-weight: bold;                               /* Bold font for clarity */
+    transition: color 0.3s ease;                     /* Smooth transition for hover effect */
+  }
+  nav ul li a:hover {
+    color: #007bff;                                  /* Change color on hover for interactivity */
+  }
+  
+  /* Heading styles for pages */
+  h1, h2 {
+    text-align: center;                              /* Center align headings */
+    margin-bottom: 1rem;                             /* Space below headings */
+  }
+  
+  /* Paragraph styling */
+  p {
+    text-align: center;                              /* Center align paragraphs */
+    margin-bottom: 1rem;                             /* Space below paragraphs */
+  }
+  
+  /* Form container styling */
+  form {
+    background: #ffffff;                             /* White background for forms */
+    padding: 2rem;                                   /* Internal padding for comfortable spacing */
+    max-width: 500px;                                /* Limit form width */
+    margin: 2rem auto;                               /* Center the form and add vertical spacing */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);         /* Subtle shadow for a lifted look */
+    border-radius: 5px;                              /* Rounded corners for a modern feel */
+  }
+  
+  /* Form element styling */
+  form input,
+  form select,
+  form textarea {
+    width: 100%;                                     /* Full width inputs for consistency */
+    padding: 0.75rem;                                /* Padding for comfortable input */
+    margin-bottom: 1rem;                             /* Space below each form element */
+    border: 1px solid #ccc;                          /* Light border for inputs */
+    border-radius: 4px;                              /* Slightly rounded input corners */
+  }
+  
+  /* Button styling within forms */
+  form button {
+    width: 100%;                                     /* Full width button for emphasis */
+    padding: 0.75rem;                                /* Padding for a clickable area */
+    background: #007bff;                             /* Blue background for the button */
+    color: #ffffff;                                  /* White text for contrast */
+    border: none;                                    /* Remove default button border */
+    border-radius: 4px;                              /* Rounded corners for the button */
+    font-size: 1rem;                                 /* Increase font size for readability */
+    cursor: pointer;                                 /* Change cursor on hover */
+    transition: background 0.3s ease;                /* Smooth transition for hover effect */
+  }
+  form button:hover {
+    background: #0056b3;                             /* Darker blue on hover */
+  }
+  
+  /* Styling for the personal area display */
+  .personal-area {
+    background: #ffffff;                             /* White background for the content box */
+    padding: 1rem;                                   /* Padding around the content */
+    margin: 2rem auto;                               /* Center the box and add vertical spacing */
+    max-width: 600px;                                /* Limit width for readability */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);         /* Subtle shadow for depth */
+    border-radius: 5px;                              /* Rounded corners */
+  }
+  
+  /* Responsive design for smaller screens */
+  @media (max-width: 600px) {
+    nav ul {
+      flex-direction: column;                        /* Stack navigation items vertically */
+      align-items: center;                           /* Center align items */
+    }
+    nav ul li {
+      margin: 0.5rem 0;                              /* Adjust spacing for vertical layout */
+    }
+    form {
+      width: 90%;                                    /* Make form take up more width on small screens */
+      padding: 1rem;                                 /* Adjust padding for smaller screens */
+    }
+  }
+  
