@@ -1,23 +1,22 @@
 // backend/src/routes/admin.ts
 
-import { Router } from "express";           // Router for creating endpoints
-import jwt from "jsonwebtoken";             // JWT for generating tokens
-import pool from "../db";                   // PostgreSQL connection pool
-import { authenticateToken } from "../middleware/authMiddleware"; // (Optional) Protect endpoints
+import { Router } from "express";
+import jwt from "jsonwebtoken";
+import pool from "../db";
+import { authenticateToken } from "../middleware/authMiddleware";
 
-const adminRouter = Router(); // Create admin router
+const adminRouter = Router();
 
 /**
  * POST /api/admin/login
- * Admin login: verifies credentials from .env and returns an admin token.
+ * Admin login: verifies credentials stored in .env and returns an admin token.
  * @access Public
  */
 adminRouter.post('/login', (req, res) => {
   const { email, password } = req.body;
-  // Check if provided credentials match the admin credentials from .env
   if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
-    // Create a JWT token with an "isAdmin" flag
-    const token = jwt.sign({ isAdmin: true, email }, process.env.JWT_SECRET as string, { expiresIn: '1h' });
+    // Include id: 0 to indicate admin
+    const token = jwt.sign({ id: 0, isAdmin: true, email }, process.env.JWT_SECRET as string, { expiresIn: '1h' });
     return res.json({ token });
   }
   return res.status(401).json({ error: "Invalid admin credentials" });
@@ -25,7 +24,7 @@ adminRouter.post('/login', (req, res) => {
 
 /**
  * Middleware to protect admin endpoints.
- * Verifies token and ensures the "isAdmin" flag is present.
+ * Verifies the token and checks for the isAdmin flag.
  */
 const adminAuthMiddleware = (req: any, res: any, next: any) => {
   const authHeader = req.headers['authorization'];
@@ -45,7 +44,14 @@ const adminAuthMiddleware = (req: any, res: any, next: any) => {
  */
 adminRouter.get('/dashboard', adminAuthMiddleware, async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM users ORDER BY id ASC");
+    // Query users and count unread messages for each user (messages from the user to admin)
+    const result = await pool.query(
+      `SELECT u.*, 
+         (SELECT COUNT(*) FROM messages m 
+          WHERE m.sender_id = u.id AND m.receiver_id = 0 AND m.is_read = false) AS unread_count
+       FROM users u
+       ORDER BY u.id ASC`
+    );
     res.json({ users: result.rows });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -83,6 +89,26 @@ adminRouter.put('/users/:id/subscribe', adminAuthMiddleware, async (req, res) =>
       [subscriptionPlan, subscriptionPrice, trainingCategory, userId]
     );
     res.json({ message: "Subscription updated successfully", user: result.rows[0] });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * PUT /api/admin/messages/read/:userId
+ * Marks all unread messages from a specific user (sender_id = userId) to admin (receiver_id = 0) as read.
+ * @access Private (admin only)
+ */
+adminRouter.put('/messages/read/:userId', adminAuthMiddleware, async (req, res) => {
+  const userId = req.params.userId;
+  try {
+    await pool.query(
+      `UPDATE messages 
+       SET is_read = true 
+       WHERE sender_id = $1 AND receiver_id = 0 AND is_read = false`,
+      [userId]
+    );
+    res.json({ message: "Messages marked as read" });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

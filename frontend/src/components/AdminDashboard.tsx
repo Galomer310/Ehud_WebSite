@@ -2,12 +2,14 @@
 
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const AdminDashboard: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
   const adminToken = localStorage.getItem("adminToken");
+  const navigate = useNavigate();
 
-  // Fetch all registered users from the backend
+  // Fetch users and their unread message counts
   const fetchUsers = async () => {
     try {
       const response = await axios.get(
@@ -28,6 +30,11 @@ const AdminDashboard: React.FC = () => {
     }
   }, [adminToken]);
 
+  // Handler for navigating to the conversation with a specific user
+  const handleMessage = (userId: number) => {
+    navigate(`/messages/conversation/${userId}`);
+  };
+
   // Handler to delete a user with confirmation
   const handleDelete = async (userId: number, userEmail: string) => {
     const confirmDelete = window.confirm(
@@ -46,12 +53,11 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  // Handler to update (choose/edit) a subscription plan for a user
+  // Handler to update a user's subscription plan details (unchanged)
   const handlePlanUpdate = async (
     userId: number,
     currentPlan: string | null
   ) => {
-    // Prompt admin for new subscription details
     const planDescription = window.prompt(
       "Enter the subscription plan description:",
       currentPlan || ""
@@ -68,7 +74,7 @@ const AdminDashboard: React.FC = () => {
     );
     if (trainingCategory === null) return;
     try {
-      const response = await axios.put(
+      await axios.put(
         `http://localhost:5000/api/admin/users/${userId}/subscribe`,
         {
           subscriptionPlan: planDescription,
@@ -85,25 +91,10 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const handleMessage = async (userId: number, userEmail: string) => {
-    const message = window.prompt(`Enter message to send to ${userEmail}:`, "");
-    if (message === null) return;
-    try {
-      // Send a POST request to /api/messages with the receiver_id and message
-      const response = await axios.post(
-        "http://localhost:5000/api/messages",
-        { receiver_id: userId, message },
-        { headers: { Authorization: `Bearer ${adminToken}` } }
-      );
-      alert(`Message sent to ${userEmail}: ${message}`);
-      console.log(
-        `Admin sent message to user ${userId} (${userEmail}): ${message}`
-      );
-      // Optionally, refresh the dashboard to see new messages if needed
-    } catch (error: any) {
-      console.error("Error sending message:", error);
-      alert("Failed to send message");
-    }
+  // Handler for sending a message (handled in a separate Messages page for admin)
+  const handleMessageButton = (userId: number, userEmail: string) => {
+    // Navigate to conversation with the selected user
+    navigate(`/messages/conversation/${userId}`);
   };
 
   return (
@@ -178,7 +169,7 @@ const AdminDashboard: React.FC = () => {
                   {user.subscription_plan ? "Edit Plan" : "Choose a Plan"}
                 </button>
                 <button
-                  onClick={() => handleMessage(user.id, user.email)}
+                  onClick={() => handleMessageButton(user.id, user.email)}
                   style={{ padding: "0.5rem", cursor: "pointer" }}
                 >
                   Message

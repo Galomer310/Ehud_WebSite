@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 
 // Define the interface for the authentication state
 interface AuthState {
+  isAdmin: any;
   token: string | null; // JWT token if logged in
   user: any; // User details (could be typed further)
 }
@@ -10,6 +11,7 @@ interface AuthState {
 const initialState: AuthState = {
   token: null,
   user: null,
+  isAdmin: undefined,
 };
 
 // Create the auth slice with name, initial state, and reducers

@@ -4,17 +4,35 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
-import SubscriptionMenu from "./SubscriptionMenu"; // Component for choosing a subscription plan
+import SubscriptionMenu from "./SubscriptionMenu";
 
 const PersonalArea: React.FC = () => {
-  // Local state for storing the user's details
   const [userData, setUserData] = useState<any>(null);
-  // Local state for storing messages for the logged-in user
-  const [messages, setMessages] = useState<any[]>([]);
-  // Retrieve the JWT token from Redux state
+  const [adminMessages, setAdminMessages] = useState<any[]>([]);
   const token = useSelector((state: RootState) => state.auth.token);
+  const isAdmin = useSelector((state: RootState) => state.auth.isAdmin);
 
-  // Fetch user data from the protected endpoint when component mounts or token changes
+  // is admin
+  useEffect(() => {
+    if (!isAdmin && token) {
+      const fetchNewAdminMessages = async () => {
+        try {
+          const response = await axios.get(
+            "http://localhost:5000/api/messages/new",
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+          setAdminMessages(response.data.messages);
+        } catch (error) {
+          console.error("Error fetching new admin messages:", error);
+        }
+      };
+      fetchNewAdminMessages();
+    }
+  }, [token, isAdmin]);
+
+  // Fetch user details
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -29,31 +47,49 @@ const PersonalArea: React.FC = () => {
         console.error("Error fetching personal data:", error);
       }
     };
-
     if (token) {
       fetchUserData();
     }
   }, [token]);
 
-  // Fetch messages for the logged-in user from the messaging endpoint
+  // Fetch new (unread) admin messages for the personal area only once
   useEffect(() => {
-    const fetchMessages = async () => {
+    const fetchNewAdminMessages = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/messages", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setMessages(response.data.messages);
+        const response = await axios.get(
+          "http://localhost:5000/api/messages/new",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        setAdminMessages(response.data.messages);
       } catch (error) {
-        console.error("Error fetching messages:", error);
+        console.error("Error fetching new admin messages:", error);
       }
     };
-
     if (token) {
-      fetchMessages();
+      fetchNewAdminMessages();
     }
   }, [token]);
 
-  // If the user is not logged in, prompt them to log in
+  // Handler to mark a specific message as read (when user clicks "Message received")
+  const handleMarkMessageAsRead = async (messageId: number) => {
+    try {
+      await axios.put(
+        `http://localhost:5000/api/messages/${messageId}/read`,
+        null,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      // Remove the message from the local state so it no longer displays in the personal area
+      setAdminMessages(adminMessages.filter((msg) => msg.id !== messageId));
+    } catch (error: any) {
+      console.error("Error marking message as read:", error);
+      alert("Failed to mark message as read");
+    }
+  };
+
   if (!token) {
     return <div>Please login to view your personal area.</div>;
   }
@@ -63,11 +99,9 @@ const PersonalArea: React.FC = () => {
       <h1>Personal Area</h1>
       {userData ? (
         <div>
-          {/* Display basic user details */}
           <p>
             <strong>Email:</strong> {userData.email}
           </p>
-          {/* Display subscription details if available */}
           {userData.subscription_plan ? (
             <div
               style={{
@@ -100,41 +134,46 @@ const PersonalArea: React.FC = () => {
               </p>
             </div>
           ) : (
-            // If no subscription exists, show the SubscriptionMenu for the user to choose a plan
             <div>
               <h2>You have not chosen a subscription plan yet.</h2>
               <SubscriptionMenu />
             </div>
           )}
-          {/* Display the Messages section */}
-          <div style={{ marginTop: "2rem" }}>
-            <h2>Messages</h2>
-            {messages.length > 0 ? (
-              <ul style={{ listStyle: "none", padding: 0 }}>
-                {messages.map((msg) => (
-                  <li
-                    key={msg.id}
-                    style={{
-                      marginBottom: "1rem",
-                      padding: "0.5rem",
-                      background: "#e9e9e9",
-                      borderRadius: "4px",
-                    }}
+          {/* Display new admin messages (only once) */}
+          {adminMessages.length > 0 && (
+            <div
+              style={{
+                marginTop: "2rem",
+                backgroundColor: "#fff3cd",
+                padding: "1rem",
+                borderRadius: "8px",
+              }}
+            >
+              <h2>New Message from Admin</h2>
+              {adminMessages.map((msg) => (
+                <div
+                  key={msg.id}
+                  style={{
+                    marginBottom: "1rem",
+                    padding: "0.5rem",
+                    border: "1px solid #ffeeba",
+                    borderRadius: "4px",
+                  }}
+                >
+                  <p>{msg.message}</p>
+                  <p style={{ fontSize: "0.8rem", color: "#555" }}>
+                    {new Date(msg.created_at).toLocaleString()}
+                  </p>
+                  <button
+                    onClick={() => handleMarkMessageAsRead(msg.id)}
+                    style={{ padding: "0.5rem 1rem", cursor: "pointer" }}
                   >
-                    <p>
-                      <strong>From:</strong> {msg.sender_email || "Admin"}
-                    </p>
-                    <p>{msg.message}</p>
-                    <p style={{ fontSize: "0.8rem", color: "#555" }}>
-                      {new Date(msg.created_at).toLocaleString()}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>No messages.</p>
-            )}
-          </div>
+                    Message received
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       ) : (
         <p>Loading personal data...</p>
