@@ -15,28 +15,34 @@ const SubscriptionMenu: React.FC = () => {
 
   // Training program categories
   const categories = [
-    "Growth and Development",
+    "Muscle development",
     "Weight Loss",
     "Maintaining a Healthy Lifestyle",
-    "Improving Abilities",
+    "performance improving for athletes",
   ];
 
   // Subscription plan options with descriptions and prices
   const plans = [
     {
       description:
-        "Workout plan with one personal call with Ehud at the beginning for 3 months",
+        "Workout plan with one personal call with Ehud at the beginning for 3 months of training ",
+      price: "$9",
+    },
+    {
+      description:
+        "Workout plan with 3 meetings and plan modifications, one every month for 3 months of training",
+      price: "$49",
+    },
+    {
+      description:
+        "Workout plan with 6 meetings and plan modifications, once every 2 weeks",
       price: "$99",
     },
     {
-      description: "Workout plan with 3 meetings, one every month for 3 months",
-      price: "$199",
+      description:
+        "Workout plan with an open chat daily feedback and personal escort",
+      price: "$149",
     },
-    {
-      description: "Workout plan with 6 meetings, one every 2 weeks",
-      price: "$299",
-    },
-    { description: "Workout plan with an open chat", price: "$149" },
   ];
 
   // Handle selection of a training category

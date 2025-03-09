@@ -11,7 +11,7 @@ import Footer from "./components/Footer";
 import AdminLogin from "./components/AdminLogin";
 import AdminDashboard from "./components/AdminDashboard";
 
-// Main App component that defines the overall layout and routes
+// Main App component that sets up routes and layout
 const App: React.FC = () => {
   return (
     <div
