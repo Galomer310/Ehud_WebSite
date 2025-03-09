@@ -1,18 +1,50 @@
 // frontend/src/components/Navbar.tsx
 
-import React from "react";
-import { Link, useNavigate } from "react-router-dom"; // Import Link and useNavigate for navigation
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom"; // For navigation
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../store/store";
 import { logout } from "../store/authSlice";
+import axios from "axios";
 
-// Navbar component with logo placeholder and navigation links, including an "Admin" link.
 const Navbar: React.FC = () => {
   const token = useSelector((state: RootState) => state.auth.token);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [unreadCount, setUnreadCount] = useState<number>(0);
 
-  // Handler to log out the user
+  // Determine if the logged-in user is an admin
+  let isAdmin = false;
+  if (token) {
+    try {
+      const decoded = JSON.parse(atob(token.split(".")[1]));
+      isAdmin = decoded?.isAdmin;
+    } catch (error) {
+      console.error("Error decoding token in Navbar:", error);
+    }
+  }
+
+  // For regular users (not admin), fetch unread admin messages count from /api/messages/new
+  useEffect(() => {
+    if (token && !isAdmin) {
+      axios
+        .get("http://localhost:5000/api/messages/new", {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        .then((response) => {
+          setUnreadCount(response.data.messages.length);
+        })
+        .catch((error) => {
+          console.error("Error fetching unread messages in Navbar:", error);
+        });
+    }
+  }, [token, isAdmin]);
+
+  // When the user clicks on the Messages link, clear the unread count.
+  const handleMessagesClick = () => {
+    setUnreadCount(0);
+  };
+
   const handleLogout = () => {
     dispatch(logout());
     navigate("/");
@@ -29,7 +61,6 @@ const Navbar: React.FC = () => {
       }}
     >
       <div style={{ display: "flex", alignItems: "center" }}>
-        {/* Logo placeholder */}
         <img
           src="/logo-placeholder.png"
           alt="Ehud Logo"
@@ -59,7 +90,16 @@ const Navbar: React.FC = () => {
         <li>
           <Link to="/">Home</Link>
         </li>
-        {/* Add a dedicated "Admin" link */}
+        {token && (
+          <li>
+            <Link to="/messages" onClick={handleMessagesClick}>
+              Messages{" "}
+              {unreadCount > 0 && (
+                <span style={{ color: "red" }}>({unreadCount})</span>
+              )}
+            </Link>
+          </li>
+        )}
         <li>
           <Link to="/admin/login">Admin</Link>
         </li>

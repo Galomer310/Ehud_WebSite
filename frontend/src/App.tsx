@@ -10,8 +10,8 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import AdminLogin from "./components/AdminLogin";
 import AdminDashboard from "./components/AdminDashboard";
+import Messages from "./components/Messages";
 
-// Main App component that sets up routes and layout
 const App: React.FC = () => {
   return (
     <div
@@ -26,6 +26,8 @@ const App: React.FC = () => {
           <Route path="/personal" element={<PersonalArea />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/messages" element={<Messages />} />
+          <Route path="/messages/conversation/:userId" element={<Messages />} />
         </Routes>
       </main>
       <Footer />
