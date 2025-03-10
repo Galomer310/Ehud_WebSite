@@ -4,12 +4,33 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
+interface User {
+  id: number;
+  email: string;
+  height: string;
+  weight: string;
+  age: number;
+  subscription_plan?: string;
+  subscription_price?: string;
+  training_category?: string;
+  // Include additional fields as needed
+}
+
 const AdminDashboard: React.FC = () => {
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [filters, setFilters] = useState({
+    id: "",
+    email: "",
+    height: "",
+    weight: "",
+    age: "",
+    plan: "",
+    category: "",
+  });
   const adminToken = localStorage.getItem("adminToken");
   const navigate = useNavigate();
 
-  // Fetch users and their unread message counts
+  // Fetch users from the admin dashboard endpoint
   const fetchUsers = async () => {
     try {
       const response = await axios.get(
@@ -19,7 +40,7 @@ const AdminDashboard: React.FC = () => {
         }
       );
       setUsers(response.data.users);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching dashboard data:", error);
     }
   };
@@ -30,7 +51,48 @@ const AdminDashboard: React.FC = () => {
     }
   }, [adminToken]);
 
-  // Handler for navigating to the conversation with a specific user
+  // Handler for filter changes: update the filters state
+  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFilters({ ...filters, [e.target.name]: e.target.value });
+  };
+
+  // Filter users based on provided filters
+  const filteredUsers = users.filter((user) => {
+    const matchId = filters.id ? user.id.toString().includes(filters.id) : true;
+    const matchEmail = filters.email
+      ? user.email.toLowerCase().includes(filters.email.toLowerCase())
+      : true;
+    const matchHeight = filters.height
+      ? (user.height || "").toString().includes(filters.height)
+      : true;
+    const matchWeight = filters.weight
+      ? (user.weight || "").toString().includes(filters.weight)
+      : true;
+    const matchAge = filters.age
+      ? user.age.toString().includes(filters.age)
+      : true;
+    const matchPlan = filters.plan
+      ? (user.subscription_plan || "")
+          .toLowerCase()
+          .includes(filters.plan.toLowerCase())
+      : true;
+    const matchCategory = filters.category
+      ? (user.training_category || "")
+          .toLowerCase()
+          .includes(filters.category.toLowerCase())
+      : true;
+    return (
+      matchId &&
+      matchEmail &&
+      matchHeight &&
+      matchWeight &&
+      matchAge &&
+      matchPlan &&
+      matchCategory
+    );
+  });
+
+  // Navigate to conversation with a specific user
   const handleMessage = (userId: number) => {
     navigate(`/messages/conversation/${userId}`);
   };
@@ -53,7 +115,7 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  // Handler to update a user's subscription plan details (unchanged)
+  // Handler to update (choose/edit) a subscription plan for a user
   const handlePlanUpdate = async (
     userId: number,
     currentPlan: string | null
@@ -91,15 +153,70 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  // Handler for sending a message (handled in a separate Messages page for admin)
-  const handleMessageButton = (userId: number, userEmail: string) => {
-    // Navigate to conversation with the selected user
-    navigate(`/messages/conversation/${userId}`);
-  };
-
   return (
     <div style={{ padding: "1rem" }}>
       <h1>Admin Dashboard</h1>
+
+      {/* Filter inputs */}
+      <div
+        style={{
+          marginBottom: "1rem",
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "1rem",
+        }}
+      >
+        <input
+          type="text"
+          name="id"
+          placeholder="Filter by ID"
+          value={filters.id}
+          onChange={handleFilterChange}
+        />
+        <input
+          type="text"
+          name="email"
+          placeholder="Filter by Email"
+          value={filters.email}
+          onChange={handleFilterChange}
+        />
+        <input
+          type="text"
+          name="height"
+          placeholder="Filter by Height"
+          value={filters.height}
+          onChange={handleFilterChange}
+        />
+        <input
+          type="text"
+          name="weight"
+          placeholder="Filter by Weight"
+          value={filters.weight}
+          onChange={handleFilterChange}
+        />
+        <input
+          type="text"
+          name="age"
+          placeholder="Filter by Age"
+          value={filters.age}
+          onChange={handleFilterChange}
+        />
+        <input
+          type="text"
+          name="plan"
+          placeholder="Filter by Plan"
+          value={filters.plan}
+          onChange={handleFilterChange}
+        />
+        <input
+          type="text"
+          name="category"
+          placeholder="Filter by Category"
+          value={filters.category}
+          onChange={handleFilterChange}
+        />
+      </div>
+
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr>
@@ -119,7 +236,7 @@ const AdminDashboard: React.FC = () => {
           </tr>
         </thead>
         <tbody>
-          {users.map((user: any) => (
+          {filteredUsers.map((user: User) => (
             <tr key={user.id}>
               <td style={{ border: "1px solid #ddd", padding: "8px" }}>
                 {user.id}
@@ -162,14 +279,14 @@ const AdminDashboard: React.FC = () => {
                 </button>
                 <button
                   onClick={() =>
-                    handlePlanUpdate(user.id, user.subscription_plan)
+                    handlePlanUpdate(user.id, user.subscription_plan ?? null)
                   }
                   style={{ padding: "0.5rem", cursor: "pointer" }}
                 >
                   {user.subscription_plan ? "Edit Plan" : "Choose a Plan"}
                 </button>
                 <button
-                  onClick={() => handleMessageButton(user.id, user.email)}
+                  onClick={() => handleMessage(user.id)}
                   style={{ padding: "0.5rem", cursor: "pointer" }}
                 >
                   Message
