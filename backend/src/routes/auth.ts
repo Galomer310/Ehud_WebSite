@@ -173,5 +173,25 @@ router.get('/personal', authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/auth/plan
+ * Protected route for a regular user to fetch their workout plan.
+ */
+router.get('/plan', authenticateToken, async (req, res) => {
+  try {
+    const userId = (req as any).user.id;
+    const result = await pool.query("SELECT * FROM workout_plans WHERE user_id = $1", [userId]);
+    if ((result.rowCount ?? 0) > 0) {
+      res.json({ plan: result.rows[0].plan });
+    } else {
+      res.json({ plan: {} });
+    }
+  } catch (error: any) {
+    console.error("Error fetching workout plan:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 // Export the router to be used in index.ts
 export default router;

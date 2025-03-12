@@ -11,6 +11,7 @@ import Footer from "./components/Footer";
 import AdminLogin from "./components/AdminLogin";
 import AdminDashboard from "./components/AdminDashboard";
 import Messages from "./components/Messages";
+import PlansConstructor from "./components/PlansConstructor"; // New component
 
 const App: React.FC = () => {
   return (
@@ -28,6 +29,10 @@ const App: React.FC = () => {
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/messages" element={<Messages />} />
           <Route path="/messages/conversation/:userId" element={<Messages />} />
+          <Route
+            path="/plans-constructor/:userId"
+            element={<PlansConstructor />}
+          />
         </Routes>
       </main>
       <Footer />
