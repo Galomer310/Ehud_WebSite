@@ -25,7 +25,7 @@ const Footer: React.FC = () => {
       {/* Social links */}
       <div>
         <a
-          href="https://instagram.com/yourprofile"
+          href="https://www.instagram.com/stories/ehuddvo91/"
           target="_blank"
           rel="noopener noreferrer"
           style={{ color: "#fff", margin: "0 0.5rem" }}
@@ -33,7 +33,7 @@ const Footer: React.FC = () => {
           Instagram
         </a>
         <a
-          href="mailto:yourmail@example.com"
+          href="Ehuddvo@gmail.com"
           style={{ color: "#fff", margin: "0 0.5rem" }}
         >
           Email

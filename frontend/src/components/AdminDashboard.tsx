@@ -13,7 +13,7 @@ interface User {
   subscription_plan?: string;
   subscription_price?: string;
   training_category?: string;
-  // Include additional fields as needed
+  // additional fields...
 }
 
 const AdminDashboard: React.FC = () => {
@@ -30,7 +30,6 @@ const AdminDashboard: React.FC = () => {
   const adminToken = localStorage.getItem("adminToken");
   const navigate = useNavigate();
 
-  // Fetch users from the admin dashboard endpoint
   const fetchUsers = async () => {
     try {
       const response = await axios.get(
@@ -51,12 +50,10 @@ const AdminDashboard: React.FC = () => {
     }
   }, [adminToken]);
 
-  // Handler for filter changes: update the filters state
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
   };
 
-  // Filter users based on provided filters
   const filteredUsers = users.filter((user) => {
     const matchId = filters.id ? user.id.toString().includes(filters.id) : true;
     const matchEmail = filters.email
@@ -92,12 +89,10 @@ const AdminDashboard: React.FC = () => {
     );
   });
 
-  // Navigate to conversation with a specific user
-  const handleMessage = (userId: number) => {
+  const handleMessage = (userId: number, userEmail: string) => {
     navigate(`/messages/conversation/${userId}`);
   };
 
-  // Handler to delete a user with confirmation
   const handleDelete = async (userId: number, userEmail: string) => {
     const confirmDelete = window.confirm(
       `Are you sure you want to delete user ${userEmail}?`
@@ -115,7 +110,6 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  // Handler to update (choose/edit) a subscription plan for a user
   const handlePlanUpdate = async (
     userId: number,
     currentPlan: string | null
@@ -156,8 +150,6 @@ const AdminDashboard: React.FC = () => {
   return (
     <div style={{ padding: "1rem" }}>
       <h1>Admin Dashboard</h1>
-
-      {/* Filter inputs */}
       <div
         style={{
           marginBottom: "1rem",
@@ -216,7 +208,6 @@ const AdminDashboard: React.FC = () => {
           onChange={handleFilterChange}
         />
       </div>
-
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr>
@@ -286,10 +277,16 @@ const AdminDashboard: React.FC = () => {
                   {user.subscription_plan ? "Edit Plan" : "Choose a Plan"}
                 </button>
                 <button
-                  onClick={() => handleMessage(user.id)}
+                  onClick={() => handleMessage(user.id, user.email)}
                   style={{ padding: "0.5rem", cursor: "pointer" }}
                 >
                   Message
+                </button>
+                <button
+                  onClick={() => navigate(`/plans-constructor/${user.id}`)}
+                  style={{ padding: "0.5rem", cursor: "pointer" }}
+                >
+                  Add Work Out Plan
                 </button>
               </td>
             </tr>
