@@ -15,8 +15,7 @@ interface Exercise {
   restTime: string;
 }
 
-// Define the plan data interface; plan is stored as an object with a dayPlans property,
-// where dayPlans keys are day numbers (as strings) and values are arrays of Exercise.
+// If your backend stores dayPlans as { "1": Exercise[], "2": Exercise[], ... }
 interface PlanData {
   dayPlans: {
     [day: string]: Exercise[];
@@ -25,11 +24,23 @@ interface PlanData {
 
 const PersonalArea: React.FC = () => {
   const [userData, setUserData] = useState<any>(null);
+  // The workout plan, if any
   const [workoutPlan, setWorkoutPlan] = useState<PlanData | null>(null);
+  // Unread admin messages
   const [adminMessages, setAdminMessages] = useState<any[]>([]);
+  // For controlling local "done" + feedback state
+  // E.g., { "1": { done: true, feedback: "Felt great" }, "2": { done: false, feedback: "" } }
+  const [dayStates, setDayStates] = useState<{
+    [day: string]: {
+      done: boolean;
+      feedback: string;
+      showFeedbackInput: boolean;
+    };
+  }>({});
+
   const token = useSelector((state: RootState) => state.auth.token);
 
-  // Decode token to determine if the logged-in user is admin (should be false for regular users)
+  // Determine if user is admin or not
   let isAdmin = false;
   if (token) {
     try {
@@ -40,7 +51,7 @@ const PersonalArea: React.FC = () => {
     }
   }
 
-  // Fetch user data (subscription details, etc.)
+  // 1) Fetch user data
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -60,7 +71,7 @@ const PersonalArea: React.FC = () => {
     }
   }, [token]);
 
-  // For regular users, fetch unread admin messages (to be shown only once)
+  // 2) For regular users, fetch unread admin messages
   useEffect(() => {
     if (!isAdmin && token) {
       const fetchNewAdminMessages = async () => {
@@ -80,7 +91,7 @@ const PersonalArea: React.FC = () => {
     }
   }, [token, isAdmin]);
 
-  // Fetch the workout plan for the user
+  // 3) Fetch the workout plan from the backend
   useEffect(() => {
     const fetchPlan = async () => {
       try {
@@ -90,8 +101,21 @@ const PersonalArea: React.FC = () => {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        // Expecting response.data.plan to be an object with a dayPlans property
+        // If your backend returns { plan: { dayPlans: { "1": [...], ... } } }, store it in workoutPlan
         setWorkoutPlan(response.data.plan);
+
+        // Initialize dayStates with done=false, feedback="" for each day that has exercises
+        if (response.data.plan?.dayPlans) {
+          const newDayStates: any = {};
+          for (const day of Object.keys(response.data.plan.dayPlans)) {
+            newDayStates[day] = {
+              done: false,
+              feedback: "",
+              showFeedbackInput: false,
+            };
+          }
+          setDayStates(newDayStates);
+        }
       } catch (error) {
         console.error("Error fetching workout plan:", error);
       }
@@ -101,7 +125,7 @@ const PersonalArea: React.FC = () => {
     }
   }, [token]);
 
-  // Handler to mark a specific admin message as read
+  // 4) Mark an admin message as read
   const handleMarkMessageAsRead = async (messageId: number) => {
     try {
       await axios.put(
@@ -118,6 +142,31 @@ const PersonalArea: React.FC = () => {
     }
   };
 
+  // 5) Show the feedback input for a specific day
+  const handleMarkAsDoneClick = (day: string) => {
+    setDayStates((prev) => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        showFeedbackInput: true,
+      },
+    }));
+  };
+
+  // 6) Save feedback for a day (locally)
+  // If you want to store feedback in the backend, you'd do a PUT request here
+  const handleSaveFeedback = (day: string) => {
+    // In this example, we store feedback in local state
+    setDayStates((prev) => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        done: true,
+        showFeedbackInput: false,
+      },
+    }));
+  };
+
   if (!token) {
     return <div>Please login to view your personal area.</div>;
   }
@@ -131,9 +180,8 @@ const PersonalArea: React.FC = () => {
             <strong>Email:</strong> {userData.email}
           </p>
           {userData.subscription_plan ? (
-            // If the user has chosen a subscription plan...
             <>
-              {/* If a workout plan exists (admin has constructed it), display it */}
+              {/* If workoutPlan.dayPlans is defined and not empty, display it */}
               {workoutPlan &&
               workoutPlan.dayPlans &&
               Object.keys(workoutPlan.dayPlans).length > 0 ? (
@@ -141,10 +189,32 @@ const PersonalArea: React.FC = () => {
                   <h2>Your Workout Plan</h2>
                   {Object.entries(workoutPlan.dayPlans).map(
                     ([day, exercises]) => {
-                      const dayExercises = exercises as Exercise[]; // Cast to Exercise[]
+                      const dayExercises = exercises as Exercise[];
+                      const dayState = dayStates[day] || {
+                        done: false,
+                        feedback: "",
+                        showFeedbackInput: false,
+                      };
                       return (
-                        <div key={day} style={{ marginBottom: "1rem" }}>
-                          <h3>Day {day}</h3>
+                        <div
+                          key={day}
+                          style={{
+                            marginBottom: "1rem",
+                            border: "1px solid #ddd",
+                            padding: "0.5rem",
+                          }}
+                        >
+                          <h3
+                            style={{
+                              textDecoration: dayState.done
+                                ? "line-through"
+                                : "none",
+                            }}
+                          >
+                            {dayState.done
+                              ? `Day ${day} - completed`
+                              : `Day ${day}`}
+                          </h3>
                           <table
                             style={{
                               width: "100%",
@@ -242,13 +312,56 @@ const PersonalArea: React.FC = () => {
                               ))}
                             </tbody>
                           </table>
+                          {/* If day not done, show "Mark exercise as done" or the feedback input */}
+                          {!dayState.done && (
+                            <div style={{ marginTop: "0.5rem" }}>
+                              {!dayState.showFeedbackInput ? (
+                                <button
+                                  onClick={() => handleMarkAsDoneClick(day)}
+                                  style={{
+                                    padding: "0.5rem 1rem",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  Mark exercise as done
+                                </button>
+                              ) : (
+                                <>
+                                  <textarea
+                                    placeholder="How did your training go today?"
+                                    value={dayState.feedback}
+                                    onChange={(e) =>
+                                      setDayStates((prev) => ({
+                                        ...prev,
+                                        [day]: {
+                                          ...prev[day],
+                                          feedback: e.target.value,
+                                        },
+                                      }))
+                                    }
+                                    style={{ width: "100%", padding: "0.5rem" }}
+                                  />
+                                  <button
+                                    onClick={() => handleSaveFeedback(day)}
+                                    style={{
+                                      marginTop: "0.5rem",
+                                      padding: "0.5rem 1rem",
+                                      cursor: "pointer",
+                                    }}
+                                  >
+                                    Save Feedback
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
                         </div>
                       );
                     }
                   )}
                 </div>
               ) : (
-                // If no workout plan exists, show the subscription plan details along with the waiting message.
+                // If no plan, show subscription plan + waiting message
                 <div
                   style={{
                     backgroundColor: "#f0f0f0",
