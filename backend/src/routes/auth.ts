@@ -1,22 +1,21 @@
 // backend/src/routes/auth.ts
 
-// Import required modules and libraries
-import { Router } from 'express';               // Express Router for endpoints
-import pool from '../db';                         // PostgreSQL connection pool
-import bcrypt from 'bcrypt';                      // bcrypt for hashing passwords
-import jwt from 'jsonwebtoken';                   // JWT for token generation
-import { authenticateToken } from '../middleware/authMiddleware'; // Middleware for protected routes
-import nodemailer from 'nodemailer';              // Nodemailer for sending emails
-import crypto from 'crypto';                      // crypto for generating verification tokens
+import { Router } from 'express';
+import pool from '../db';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import { authenticateToken } from '../middleware/authMiddleware';
+import nodemailer from 'nodemailer';
+import crypto from 'crypto';
 
-const router = Router(); // Create a new router instance
+const router = Router();
 
-// Configure Nodemailer to use Gmail SMTP with your app-specific password
+// Configure Nodemailer
 const transporter = nodemailer.createTransport({
-  service: 'gmail', // Use Gmail's default SMTP settings
+  service: 'gmail',
   auth: {
-    user: process.env.EMAIL_USER, // Your Gmail address (e.g., galomer6708@gmail.com)
-    pass: process.env.EMAIL_PASS  // Your Gmail app-specific password
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
   }
 });
 
@@ -25,23 +24,18 @@ const transporter = nodemailer.createTransport({
  * Registers a new user, generates a verification token, and sends a verification email.
  */
 router.post('/register', async (req, res) => {
-  // Extract registration fields from the request body
   const { email, password, height, weight, age, occupation, exercise_frequency, sex, medical_conditions } = req.body;
   try {
-    // Check if the email already exists in the database
     const existingUser = await pool.query(`SELECT * FROM users WHERE email = $1`, [email]);
-    if ((existingUser.rowCount ?? 0) > 0) {
+    if (existingUser.rowCount ?? 0 > 0) {
       return res.status(400).json({ error: "Your email is already registered. Please login." });
     }
     
-    // Hash the password with bcrypt
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Generate a unique verification token (32 random bytes converted to hex)
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
-    // Insert the new user into the database; 'is_verified' defaults to false
     const result = await pool.query(
       `INSERT INTO users (email, password, height, weight, age, occupation, exercise_frequency, sex, medical_conditions, verification_token)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
@@ -49,10 +43,8 @@ router.post('/register', async (req, res) => {
       [email, hashedPassword, height, weight, age, occupation, exercise_frequency, sex, medical_conditions, verificationToken]
     );
 
-    // Construct the verification URL using the generated token
     const verificationUrl = `http://localhost:5000/api/auth/verify-email?token=${verificationToken}`;
 
-    // Send the verification email to the user
     await transporter.sendMail({
       from: '"Ehud Fitness" <no-reply@ehudfitness.com>',
       to: email,
@@ -136,7 +128,7 @@ router.post('/subscribe', authenticateToken, async (req, res) => {
     );
 
     // Send an email notification to the admin about the subscription update.
-    const adminEmail = process.env.ADMIN_EMAIL; // Ensure ADMIN_EMAIL is defined in .env
+    const adminEmail = process.env.ADMIN_EMAIL;
     const updatedUser = result.rows[0];
     await transporter.sendMail({
       from: '"Ehud Fitness" <no-reply@ehudfitness.com>',
@@ -173,84 +165,114 @@ router.get('/personal', authenticateToken, async (req, res) => {
   }
 });
 
-/**
- * GET /api/auth/plan
- * Protected route for a regular user to fetch their workout plan.
+/** 
+ * GET /api/auth/plan-structured
+ * Protected route for a user to fetch their days + exercises from the DB.
  */
-router.get('/plan', authenticateToken, async (req, res) => {
+router.get('/plan-structured', authenticateToken, async (req, res) => {
   try {
     const userId = (req as any).user.id;
-    const result = await pool.query("SELECT * FROM workout_plans WHERE user_id = $1", [userId]);
-    if ((result.rowCount ?? 0) > 0) {
-      res.json({ plan: result.rows[0].plan });
-    } else {
-      res.json({ plan: {} });
-    }
-  } catch (error: any) {
-    console.error("Error fetching workout plan:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
 
-/**
- * GET /api/auth/plan
- * Protected route for a regular user to fetch their workout plan.
- * The plan is expected to be in the format:
- * { dayPlans: { "1": { exercises: Exercise[], feedback?: string, done?: boolean }, "2": {...}, ... } }
- */
-router.get('/plan', authenticateToken, async (req, res) => {
-  try {
-    const userId = (req as any).user.id;
-    const result = await pool.query("SELECT * FROM workout_plans WHERE user_id = $1", [userId]);
-    if ((result.rowCount ?? 0) > 0) {
-      res.json({ plan: result.rows[0].plan });
-    } else {
-      res.json({ plan: { dayPlans: {} } });
-    }
-  } catch (error: any) {
-    console.error("Error fetching workout plan:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-/**
- * PUT /api/auth/plan
- * Protected route for a regular user to update feedback for a specific day in their workout plan.
- * Expects a JSON body: { day: number, feedback: string }
- * Updates the plan by setting the feedback for the given day and marks the day as done if feedback is non-empty.
- */
-router.put('/plan', authenticateToken, async (req, res) => {
-  try {
-    const userId = (req as any).user.id;
-    const { day, feedback } = req.body;
-    // Retrieve the existing plan
-    const result = await pool.query("SELECT * FROM workout_plans WHERE user_id = $1", [userId]);
-    if ((result.rowCount ?? 0) === 0) {
-      return res.status(400).json({ error: "No workout plan found." });
-    }
-    let plan = result.rows[0].plan; // The plan is stored as JSON
-    if (!plan.dayPlans) {
-      plan.dayPlans = {};
-    }
-    // Ensure there's an entry for the day; if not, create an empty structure
-    if (!plan.dayPlans[day]) {
-      plan.dayPlans[day] = { exercises: [], feedback: "", done: false };
-    }
-    // Update the day's feedback and mark done if feedback is non-empty
-    plan.dayPlans[day].feedback = feedback;
-    plan.dayPlans[day].done = feedback.trim().length > 0;
-    // Update the plan in the database
-    const updateResult = await pool.query(
-      "UPDATE workout_plans SET plan = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2 RETURNING plan",
-      [plan, userId]
+    // 1) Fetch day rows
+    const dayRows = await pool.query(
+      `SELECT * FROM workout_plan_days
+       WHERE user_id = $1
+       ORDER BY day_number ASC`,
+      [userId]
     );
-    res.json({ message: "Feedback updated successfully", plan: updateResult.rows[0].plan });
+
+    // 2) Fetch exercises for those days
+    const exerciseRows = await pool.query(
+      `SELECT e.*, d.day_number
+       FROM workout_exercises e
+       JOIN workout_plan_days d ON e.plan_day_id = d.id
+       WHERE d.user_id = $1
+       ORDER BY d.day_number ASC`,
+      [userId]
+    );
+
+    // Build a structured result
+    const daysMap: Record<number, any> = {};
+    dayRows.rows.forEach((row) => {
+      daysMap[row.day_number] = {
+        id: row.id,
+        user_id: row.user_id,
+        day_number: row.day_number,
+        feedback: row.feedback,
+        done: row.done,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        exercises: []
+      };
+    });
+
+    exerciseRows.rows.forEach((ex) => {
+      if (!daysMap[ex.day_number]) return;
+      daysMap[ex.day_number].exercises.push({
+        id: ex.id,
+        plan_day_id: ex.plan_day_id,
+        drill_name: ex.drill_name,
+        weight: ex.weight,
+        reps: ex.reps,
+        sets: ex.sets,
+        rest_time: ex.rest_time,
+        created_at: ex.created_at,
+        updated_at: ex.updated_at
+      });
+    });
+
+    const days = Object.values(daysMap).sort((a: any, b: any) => a.day_number - b.day_number);
+    res.json({ days });
+  } catch (error: any) {
+    console.error("Error fetching structured plan:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * PUT /api/auth/day/:dayId/feedback
+ * Protected route for a user to update feedback (and done) for a specific day.
+ */
+router.put('/day/:dayId/feedback', authenticateToken, async (req, res) => {
+  try {
+    const userId = (req as any).user.id;
+    const dayId = parseInt(req.params.dayId, 10);
+    const { feedback } = req.body;
+
+    // Ensure the day belongs to this user
+    const check = await pool.query(
+      `SELECT * FROM workout_plan_days
+       WHERE id = $1 AND user_id = $2`,
+      [dayId, userId]
+    );
+    if (check.rowCount === 0) {
+      return res.status(403).json({ error: "No access to this day" });
+    }
+
+    // Mark day as done if feedback is non-empty
+    const isDone = feedback && feedback.trim().length > 0;
+
+    await pool.query(
+      `UPDATE workout_plan_days
+       SET feedback = $1,
+           done = $2,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $3`,
+      [feedback, isDone, dayId]
+    );
+
+    res.json({ message: "Feedback updated successfully" });
   } catch (error: any) {
     console.error("Error updating feedback:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
+/**
+ * GET /api/auth/plan
+ * (Optional: old route if you want to keep it)
+ * 
+ * This was your original JSON-based plan route. You can remove it if not needed anymore.
+ */
 
-// Export the router to be used in index.ts
 export default router;
