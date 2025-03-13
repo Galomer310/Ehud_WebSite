@@ -192,6 +192,65 @@ router.get('/plan', authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/auth/plan
+ * Protected route for a regular user to fetch their workout plan.
+ * The plan is expected to be in the format:
+ * { dayPlans: { "1": { exercises: Exercise[], feedback?: string, done?: boolean }, "2": {...}, ... } }
+ */
+router.get('/plan', authenticateToken, async (req, res) => {
+  try {
+    const userId = (req as any).user.id;
+    const result = await pool.query("SELECT * FROM workout_plans WHERE user_id = $1", [userId]);
+    if ((result.rowCount ?? 0) > 0) {
+      res.json({ plan: result.rows[0].plan });
+    } else {
+      res.json({ plan: { dayPlans: {} } });
+    }
+  } catch (error: any) {
+    console.error("Error fetching workout plan:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * PUT /api/auth/plan
+ * Protected route for a regular user to update feedback for a specific day in their workout plan.
+ * Expects a JSON body: { day: number, feedback: string }
+ * Updates the plan by setting the feedback for the given day and marks the day as done if feedback is non-empty.
+ */
+router.put('/plan', authenticateToken, async (req, res) => {
+  try {
+    const userId = (req as any).user.id;
+    const { day, feedback } = req.body;
+    // Retrieve the existing plan
+    const result = await pool.query("SELECT * FROM workout_plans WHERE user_id = $1", [userId]);
+    if ((result.rowCount ?? 0) === 0) {
+      return res.status(400).json({ error: "No workout plan found." });
+    }
+    let plan = result.rows[0].plan; // The plan is stored as JSON
+    if (!plan.dayPlans) {
+      plan.dayPlans = {};
+    }
+    // Ensure there's an entry for the day; if not, create an empty structure
+    if (!plan.dayPlans[day]) {
+      plan.dayPlans[day] = { exercises: [], feedback: "", done: false };
+    }
+    // Update the day's feedback and mark done if feedback is non-empty
+    plan.dayPlans[day].feedback = feedback;
+    plan.dayPlans[day].done = feedback.trim().length > 0;
+    // Update the plan in the database
+    const updateResult = await pool.query(
+      "UPDATE workout_plans SET plan = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2 RETURNING plan",
+      [plan, userId]
+    );
+    res.json({ message: "Feedback updated successfully", plan: updateResult.rows[0].plan });
+  } catch (error: any) {
+    console.error("Error updating feedback:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 // Export the router to be used in index.ts
 export default router;
