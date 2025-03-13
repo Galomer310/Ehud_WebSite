@@ -13,7 +13,8 @@ interface User {
   subscription_plan?: string;
   subscription_price?: string;
   training_category?: string;
-  // additional fields...
+  unread_count?: number;
+  last_feedback?: string; // new
 }
 
 const AdminDashboard: React.FC = () => {
@@ -222,6 +223,9 @@ const AdminDashboard: React.FC = () => {
               Category
             </th>
             <th style={{ border: "1px solid #ddd", padding: "8px" }}>
+              Last Feedback
+            </th>
+            <th style={{ border: "1px solid #ddd", padding: "8px" }}>
               Actions
             </th>
           </tr>
@@ -252,6 +256,9 @@ const AdminDashboard: React.FC = () => {
               </td>
               <td style={{ border: "1px solid #ddd", padding: "8px" }}>
                 {user.training_category || "N/A"}
+              </td>
+              <td style={{ border: "1px solid #ddd", padding: "8px" }}>
+                {user.last_feedback || "None"}
               </td>
               <td
                 style={{

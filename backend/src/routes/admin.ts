@@ -39,16 +39,22 @@ const adminAuthMiddleware = (req: any, res: any, next: any) => {
 
 /**
  * GET /api/admin/dashboard
- * Returns all registered users with their details and subscription info.
+ * Returns all registered users with their details and subscription info,
+ * plus unread_count and last_feedback from workout_plan_days.
  * @access Private (admin only)
  */
 adminRouter.get('/dashboard', adminAuthMiddleware, async (req, res) => {
   try {
-    // Query users and count unread messages for each user (messages from the user to admin)
     const result = await pool.query(
-      `SELECT u.*, 
+      `SELECT u.*,
          (SELECT COUNT(*) FROM messages m 
-          WHERE m.sender_id = u.id AND m.receiver_id = 0 AND m.is_read = false) AS unread_count
+          WHERE m.sender_id = u.id AND m.receiver_id = 0 AND m.is_read = false) AS unread_count,
+         (SELECT wpd.feedback
+          FROM workout_plan_days wpd
+          WHERE wpd.user_id = u.id 
+            AND wpd.feedback IS NOT NULL
+          ORDER BY wpd.updated_at DESC
+          LIMIT 1) AS last_feedback
        FROM users u
        ORDER BY u.id ASC`
     );

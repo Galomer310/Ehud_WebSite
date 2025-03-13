@@ -1,43 +1,38 @@
+// frontend/src/components/PlansConstructor.tsx
+
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
-
-// Define an interface for an exercise including "sets"
-interface Exercise {
-  drillName: string;
-  weight: string;
-  reps: string;
-  sets: string;
-  restTime: string;
-}
-
-// Define the workout plan type: keys are day numbers, values are arrays of exercises
-interface WorkoutPlan {
-  [day: number]: Exercise[];
-}
+import { IWorkoutPlanDay, IWorkoutExercise } from "../types";
 
 const PlansConstructor: React.FC = () => {
-  const { userId } = useParams<{ userId: string }>(); // Target user ID from URL
+  const { userId } = useParams<{ userId: string }>();
   const token =
     useSelector((state: RootState) => state.auth.token) ||
     localStorage.getItem("adminToken");
   const navigate = useNavigate();
 
-  const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan>({});
-  const [selectedDay, setSelectedDay] = useState<number>(1);
-  const [newExercise, setNewExercise] = useState<Exercise>({
+  // Instead of day => exercise[], we'll store an array of "day objects"
+  const [days, setDays] = useState<IWorkoutPlanDay[]>([]);
+  const [selectedDayNumber, setSelectedDayNumber] = useState<number>(1);
+
+  // We'll track a "new exercise" form
+  const [newExercise, setNewExercise] = useState<IWorkoutExercise>({
     drillName: "",
     weight: "",
     reps: "",
     sets: "",
     restTime: "",
   });
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
 
-  // Fetch existing plan for the user (if exists)
+  // For editing an existing exercise
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editingExercise, setEditingExercise] =
+    useState<IWorkoutExercise | null>(null);
+
+  // On load, fetch the existing plan if it exists
   useEffect(() => {
     if (userId && token) {
       axios
@@ -45,8 +40,18 @@ const PlansConstructor: React.FC = () => {
           headers: { Authorization: `Bearer ${token}` },
         })
         .then((response) => {
-          // Assume plan is stored as { dayPlans: { "1": [...], "2": [...], ... } }
-          setWorkoutPlan(response.data.plan.dayPlans || {});
+          // response.data.days is an array of day objects
+          const fetchedDays: IWorkoutPlanDay[] = response.data.days || [];
+          // We need to adapt drill_name -> drillName, etc. for UI
+          const adaptedDays = fetchedDays.map((d) => ({
+            ...d,
+            exercises: d.exercises.map((ex) => ({
+              ...ex,
+              drillName: ex.drillName,
+              restTime: ex.restTime,
+            })),
+          }));
+          setDays(adaptedDays);
         })
         .catch((error) => {
           console.error("Error fetching workout plan:", error);
@@ -54,16 +59,39 @@ const PlansConstructor: React.FC = () => {
     }
   }, [userId, token]);
 
+  // Helper to ensure we have a day object for a given day_number
+  const getOrCreateDay = (day_number: number): IWorkoutPlanDay => {
+    let dayObj = days.find((d) => d.day_number === day_number);
+    if (!dayObj) {
+      dayObj = {
+        user_id: parseInt(userId || "0", 10),
+        day_number,
+        exercises: [],
+      };
+      setDays((prev) => [...prev, dayObj!]);
+    }
+    return dayObj;
+  };
+
   // Handler to add a new exercise row
   const addExercise = () => {
-    if (!newExercise.drillName) {
+    if (!newExercise.drillName.trim()) {
       alert("Please enter a drill name");
       return;
     }
-    setWorkoutPlan((prevPlan) => {
-      const dayExercises = prevPlan[selectedDay] || [];
-      return { ...prevPlan, [selectedDay]: [...dayExercises, newExercise] };
-    });
+    // Get or create the day object
+    const dayObj = getOrCreateDay(selectedDayNumber);
+    // Insert the new exercise
+    const updatedExercises = [...dayObj.exercises, newExercise];
+    const updatedDayObj = { ...dayObj, exercises: updatedExercises };
+
+    // Update state
+    setDays((prevDays) =>
+      prevDays.map((d) =>
+        d.day_number === selectedDayNumber ? updatedDayObj : d
+      )
+    );
+    // Clear the newExercise form
     setNewExercise({
       drillName: "",
       weight: "",
@@ -74,19 +102,25 @@ const PlansConstructor: React.FC = () => {
   };
 
   // Handler to begin editing a specific exercise row
-  const startEditing = (index: number, exercise: Exercise) => {
+  const startEditing = (index: number, exercise: IWorkoutExercise) => {
     setEditingIndex(index);
-    setEditingExercise(exercise);
+    // Copy it so we don't mutate
+    setEditingExercise({ ...exercise });
   };
 
   // Handler to save edited exercise row
   const saveEditedExercise = () => {
-    if (editingIndex === null || editingExercise === null) return;
-    setWorkoutPlan((prevPlan) => {
-      const dayExercises = prevPlan[selectedDay] || [];
-      dayExercises[editingIndex] = editingExercise;
-      return { ...prevPlan, [selectedDay]: dayExercises };
-    });
+    if (editingIndex === null || !editingExercise) return;
+    // Update the day’s exercises
+    const dayObj = getOrCreateDay(selectedDayNumber);
+    const updatedExercises = [...dayObj.exercises];
+    updatedExercises[editingIndex] = editingExercise;
+    const updatedDayObj = { ...dayObj, exercises: updatedExercises };
+
+    setDays((prev) =>
+      prev.map((d) => (d.day_number === selectedDayNumber ? updatedDayObj : d))
+    );
+
     setEditingIndex(null);
     setEditingExercise(null);
   };
@@ -94,11 +128,27 @@ const PlansConstructor: React.FC = () => {
   // Handler to save the entire plan for the user
   const savePlan = async () => {
     if (!userId || !token) return;
-    const planData = { dayPlans: workoutPlan };
+
+    // Convert from the UI shape to the backend shape:
+    //   drillName => drill_name, restTime => rest_time, etc.
+    const backendDays = days.map((d) => ({
+      user_id: d.user_id,
+      day_number: d.day_number,
+      feedback: d.feedback || "",
+      done: d.done || false,
+      exercises: d.exercises.map((ex) => ({
+        drill_name: ex.drillName,
+        weight: ex.weight,
+        reps: ex.reps,
+        sets: ex.sets,
+        rest_time: ex.restTime,
+      })),
+    }));
+
     try {
       await axios.post(
         `http://localhost:5000/api/admin/plans/${userId}`,
-        { plan: planData },
+        { days: backendDays },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       alert("Plan saved successfully");
@@ -109,6 +159,13 @@ const PlansConstructor: React.FC = () => {
     }
   };
 
+  // We'll display the exercises for the currently selectedDayNumber
+  const currentDayObj = days.find(
+    (d) => d.day_number === selectedDayNumber
+  ) || {
+    exercises: [],
+  };
+
   return (
     <div style={{ padding: "1rem" }}>
       <h1>Workout Plan Constructor for User {userId}</h1>
@@ -116,8 +173,8 @@ const PlansConstructor: React.FC = () => {
         <label>
           Select Day:{" "}
           <select
-            value={selectedDay}
-            onChange={(e) => setSelectedDay(parseInt(e.target.value, 10))}
+            value={selectedDayNumber}
+            onChange={(e) => setSelectedDayNumber(parseInt(e.target.value, 10))}
           >
             {Array.from({ length: 90 }, (_, i) => i + 1).map((day) => (
               <option key={day} value={day}>
@@ -127,7 +184,8 @@ const PlansConstructor: React.FC = () => {
           </select>
         </label>
       </div>
-      <h2>Day {selectedDay} Exercises</h2>
+
+      <h2>Day {selectedDayNumber} Exercises</h2>
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr>
@@ -146,7 +204,7 @@ const PlansConstructor: React.FC = () => {
           </tr>
         </thead>
         <tbody>
-          {(workoutPlan[selectedDay] || []).map((exercise, index) => (
+          {currentDayObj.exercises.map((exercise, index) => (
             <tr key={index}>
               {editingIndex === index && editingExercise ? (
                 <>
@@ -248,6 +306,7 @@ const PlansConstructor: React.FC = () => {
               )}
             </tr>
           ))}
+
           {/* Row to add a new exercise */}
           <tr>
             <td style={{ border: "1px solid #ddd", padding: "8px" }}>
@@ -311,6 +370,7 @@ const PlansConstructor: React.FC = () => {
           </tr>
         </tbody>
       </table>
+
       <br />
       <button
         onClick={savePlan}

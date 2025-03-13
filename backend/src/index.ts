@@ -23,7 +23,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/messages", messagesRouter);
-app.use("/api/admin/plans", plansRouter); // Mount the plans router under /api/admin/plans
+app.use("/api/admin/plans", plansRouter); 
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
